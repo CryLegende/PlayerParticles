@@ -283,7 +283,7 @@ public class DataManager extends AbstractDataManager {
             });
         };
 
-        if (!Bukkit.isPrimaryThread()) {
+        if (Bukkit.isPrimaryThread()) {
             this.async(task);
         } else {
             task.run();
