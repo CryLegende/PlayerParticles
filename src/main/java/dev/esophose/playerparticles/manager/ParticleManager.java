@@ -13,6 +13,7 @@ import dev.esophose.playerparticles.particles.data.OrdinaryColor;
 import dev.esophose.playerparticles.particles.spawning.ParticleBatcher;
 import dev.esophose.playerparticles.particles.spawning.ParticleSpawner;
 import dev.esophose.playerparticles.styles.DefaultStyles;
+import dev.esophose.playerparticles.styles.NametagReminder;
 import dev.esophose.playerparticles.util.ParticleUtils;
 import dev.rosewood.rosegarden.RosePlugin;
 import dev.rosewood.rosegarden.manager.Manager;
@@ -58,6 +59,11 @@ public class ParticleManager extends Manager implements Listener, Runnable {
     private ScheduledTask flushTask;
 
     /**
+     * The task that reads which players have an extra nametag line
+     */
+    private ScheduledTask nametagTask;
+
+    /**
      * Rainbow particle effect hue and note color used for rainbow colorable effects
      */
     private int hue;
@@ -82,6 +88,10 @@ public class ParticleManager extends Manager implements Listener, Runnable {
             long ticks = Settings.TICKS_PER_PARTICLE.get();
             this.particleTask = this.rosePlugin.getScheduler().runTaskTimerAsync(this, 0, ticks);
 
+            String extraLine = Settings.NAMETAG_EXTRA_LINE_PLACEHOLDER.get();
+            if (extraLine != null && !extraLine.trim().isEmpty())
+                this.nametagTask = this.rosePlugin.getScheduler().runTaskTimer(NametagReminder::refresh, 0, 20);
+
             ParticleBatcher.setup(Settings.BATCH_PARTICLE_PACKETS.get());
             if (ParticleBatcher.isEnabled())
                 this.flushTask = this.rosePlugin.getScheduler().runTaskTimerAsync(ParticleBatcher::flush, 1, 1);
@@ -103,6 +113,11 @@ public class ParticleManager extends Manager implements Listener, Runnable {
         if (this.worldGuardTask != null) {
             this.worldGuardTask.cancel();
             this.worldGuardTask = null;
+        }
+
+        if (this.nametagTask != null) {
+            this.nametagTask.cancel();
+            this.nametagTask = null;
         }
 
         if (this.flushTask != null) {

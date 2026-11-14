@@ -6,6 +6,8 @@ import dev.esophose.playerparticles.particles.ParticlePair;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
+import org.bukkit.entity.Player;
 import org.bukkit.Location;
 
 public class ParticleStyleOverhead extends ConfiguredParticleStyle {
@@ -14,6 +16,8 @@ public class ParticleStyleOverhead extends ConfiguredParticleStyle {
     private double particleSpreadX, particleSpreadY, particleSpreadZ;
     private double particleSpeed;
     private int particlesPerTick;
+    private boolean followNametag;
+    private Map<String, Integer> periods = Collections.emptyMap();
 
     protected ParticleStyleOverhead() {
         super("overhead", true, false, -0.5);
@@ -26,6 +30,20 @@ public class ParticleStyleOverhead extends ConfiguredParticleStyle {
         for (int i = 0; i < this.particlesPerTick; i++)
             particles.add(PParticle.builder(location.clone().add(0, this.headOffset, 0)).offsets(this.particleSpreadX, this.particleSpreadY, this.particleSpreadZ).speed(this.particleSpeed).build());
 
+        return particles;
+    }
+
+    @Override
+    public List<PParticle> getParticles(ParticlePair particle, Location location, Player player) {
+        if (player == null)
+            return null;
+        if (!NametagReminder.emitNow(particle, this.periods))
+            return Collections.emptyList();
+
+        Location anchor = NametagReminder.anchor(player, location, this.headOffset, this.followNametag);
+        List<PParticle> particles = new ArrayList<>();
+        for (int i = 0; i < this.particlesPerTick; i++)
+            particles.add(PParticle.builder(anchor.clone()).offsets(this.particleSpreadX, this.particleSpreadY, this.particleSpreadZ).speed(this.particleSpeed).build());
         return particles;
     }
 
@@ -47,6 +65,7 @@ public class ParticleStyleOverhead extends ConfiguredParticleStyle {
         this.setIfNotExists("particle-spread-z", 0.4, "How far to spread the particles on the z-axis");
         this.setIfNotExists("particle-speed", 0.0, "The speed of the particles");
         this.setIfNotExists("particles-per-tick", 1, "How many particles to spawn per tick");
+        NametagReminder.setDefaults(this);
     }
 
     @Override
@@ -57,6 +76,8 @@ public class ParticleStyleOverhead extends ConfiguredParticleStyle {
         this.particleSpreadZ = config.getDouble("particle-spread-z");
         this.particleSpeed = config.getDouble("particle-speed");
         this.particlesPerTick = config.getInt("particles-per-tick");
+        this.followNametag = config.getBoolean("follow-nametag");
+        this.periods = NametagReminder.readPeriods(config);
     }
 
 }
