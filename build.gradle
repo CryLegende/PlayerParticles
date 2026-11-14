@@ -7,7 +7,7 @@ plugins {
 }
 
 group = 'dev.esophose'
-version = '8.14-SNAPSHOT'
+version = '8.13-p2'
 
 java {
     targetCompatibility = JavaVersion.VERSION_1_8
