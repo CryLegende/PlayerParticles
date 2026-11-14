@@ -3,6 +3,7 @@ package dev.esophose.playerparticles.util;
 import dev.esophose.playerparticles.particles.ParticleEffect;
 import dev.esophose.playerparticles.particles.data.OrdinaryColor;
 import dev.esophose.playerparticles.particles.data.Vibration;
+import dev.esophose.playerparticles.particles.spawning.ParticleBatcher;
 import dev.esophose.playerparticles.particles.spawning.SpigotParticleSpawner;
 import org.bukkit.Color;
 import org.bukkit.Location;
@@ -24,14 +25,14 @@ public class VersionUtils {
     public static void spawnVibrationParticles(ParticleEffect particleEffect, Vibration vibration, double offsetX, double offsetY, double offsetZ, int amount, Location center, boolean isLongRange, Player owner) {
         org.bukkit.Vibration data = vibration.getVibration() != null ? vibration.getVibration() : new org.bukkit.Vibration(center, new org.bukkit.Vibration.Destination.BlockDestination(center), vibration.getDuration());
         for (Player player : SpigotParticleSpawner.getPlayersInRange(center, isLongRange, owner))
-            player.spawnParticle(particleEffect.getSpigotEnum(), center.getX(), center.getY(), center.getZ(), amount, offsetX, offsetY, offsetZ, data);
+            ParticleBatcher.spawn(player, particleEffect.getSpigotEnum(), center.getX(), center.getY(), center.getZ(), amount, offsetX, offsetY, offsetZ, 1, data);
     }
 
     public static void spawnSpellParticles(ParticleEffect particleEffect, Location center, OrdinaryColor ordinaryColor, boolean isLongRange, Player owner) {
         Color color = ordinaryColor.toSpigot();
         Spell spell = new Spell(color, 1.0F);
         for (Player player : SpigotParticleSpawner.getPlayersInRange(center, isLongRange, owner))
-            player.spawnParticle(particleEffect.getSpigotEnum(), center.getX(), center.getY(), center.getZ(), 1, 0, 0, 0, 0, spell);
+            ParticleBatcher.spawn(player, particleEffect.getSpigotEnum(), center.getX(), center.getY(), center.getZ(), 1, 0, 0, 0, 0, spell);
     }
 
     public static void setLightLevel(ItemMeta itemMeta, int level) {

@@ -10,6 +10,8 @@ import dev.esophose.playerparticles.particles.ParticleGroup;
 import dev.esophose.playerparticles.particles.ParticlePair;
 import dev.esophose.playerparticles.particles.data.NoteColor;
 import dev.esophose.playerparticles.particles.data.OrdinaryColor;
+import dev.esophose.playerparticles.particles.spawning.ParticleBatcher;
+import dev.esophose.playerparticles.particles.spawning.ParticleSpawner;
 import dev.esophose.playerparticles.styles.DefaultStyles;
 import dev.esophose.playerparticles.util.ParticleUtils;
 import dev.rosewood.rosegarden.RosePlugin;
@@ -51,6 +53,11 @@ public class ParticleManager extends Manager implements Listener, Runnable {
     private ScheduledTask worldGuardTask;
 
     /**
+     * The task that sends the particles queued during the tick
+     */
+    private ScheduledTask flushTask;
+
+    /**
      * Rainbow particle effect hue and note color used for rainbow colorable effects
      */
     private int hue;
@@ -75,6 +82,10 @@ public class ParticleManager extends Manager implements Listener, Runnable {
             long ticks = Settings.TICKS_PER_PARTICLE.get();
             this.particleTask = this.rosePlugin.getScheduler().runTaskTimerAsync(this, 0, ticks);
 
+            ParticleBatcher.setup(Settings.BATCH_PARTICLE_PACKETS.get());
+            if (ParticleBatcher.isEnabled())
+                this.flushTask = this.rosePlugin.getScheduler().runTaskTimerAsync(ParticleBatcher::flush, 1, 1);
+
             if (WorldGuardHook.enabled()) {
                 long worldGuardTicks = Settings.WORLDGUARD_CHECK_INTERVAL.get();
                 this.worldGuardTask = this.rosePlugin.getScheduler().runTaskTimer(this::updateWorldGuardStatuses, 0, worldGuardTicks);
@@ -93,6 +104,12 @@ public class ParticleManager extends Manager implements Listener, Runnable {
             this.worldGuardTask.cancel();
             this.worldGuardTask = null;
         }
+
+        if (this.flushTask != null) {
+            this.flushTask.cancel();
+            this.flushTask = null;
+        }
+        ParticleBatcher.flush();
 
         this.particlePlayers.clear();
     }
@@ -153,6 +170,7 @@ public class ParticleManager extends Manager implements Listener, Runnable {
      */
     @EventHandler(priority = EventPriority.MONITOR)
     public void onPlayerQuit(PlayerQuitEvent e) {
+        ParticleSpawner.forgetViewers(e.getPlayer().getUniqueId());
         PPlayer pplayer = this.rosePlugin.getManager(DataManager.class).getPPlayer(e.getPlayer().getUniqueId());
         if (pplayer != null) {
             pplayer.clearCachedPlayer();

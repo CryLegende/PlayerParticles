@@ -10,7 +10,12 @@ import dev.esophose.playerparticles.particles.data.ParticleColor;
 import dev.esophose.playerparticles.particles.data.Vibration;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
+import org.bukkit.Bukkit;
 import org.bukkit.Location;
+import org.bukkit.World;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
 
@@ -110,20 +115,70 @@ public abstract class ParticleSpawner {
      * @return A List of Players within the particle display range
      */
     public static List<Player> getPlayersInRange(Location center, boolean isLongRange, Player owner) {
-        List<Player> players = new ArrayList<>();
-        int range = !isLongRange ? Settings.PARTICLE_RENDER_RANGE_PLAYER.get() : Settings.PARTICLE_RENDER_RANGE_FIXED_EFFECT.get();
-        range *= range;
+        if (owner == null || isLongRange)
+            return computePlayersInRange(center, isLongRange, owner);
 
-        for (PPlayer pplayer : PlayerParticles.getInstance().getManager(ParticleManager.class).getPPlayers().values()) {
-            Player p = pplayer.getPlayer();
+        // The same owner spawns several particles per tick (styles, move events): the viewers are
+        // computed once per tick from the owner's position instead of once per particle
+        int tick = Bukkit.getCurrentTick();
+        CachedViewers cached = VIEWERS.get(owner.getUniqueId());
+        if (cached != null && cached.tick == tick && cached.owner == owner)
+            return cached.players;
+
+        List<Player> players = computePlayersInRange(owner.getLocation(), false, owner);
+        VIEWERS.put(owner.getUniqueId(), new CachedViewers(tick, owner, players));
+        return players;
+    }
+
+    /**
+     * Forgets the cached viewers of a player
+     *
+     * @param uuid The player's UUID
+     */
+    public static void forgetViewers(UUID uuid) {
+        VIEWERS.remove(uuid);
+    }
+
+    private static List<Player> computePlayersInRange(Location center, boolean isLongRange, Player owner) {
+        List<Player> players = new ArrayList<>();
+        World world = center.getWorld();
+        if (world == null)
+            return players;
+
+        int range = !isLongRange ? Settings.PARTICLE_RENDER_RANGE_PLAYER.get() : Settings.PARTICLE_RENDER_RANGE_FIXED_EFFECT.get();
+        double rangeSquared = (double) range * range;
+        double x = center.getX(), y = center.getY(), z = center.getZ();
+        Location scratch = new Location(world, 0, 0, 0);
+
+        ParticleManager particleManager = PlayerParticles.getInstance().getManager(ParticleManager.class);
+        for (Player p : world.getPlayers()) {
+            PPlayer pplayer = particleManager.getPPlayers().get(p.getUniqueId());
+            if (pplayer == null || !pplayer.canSeeParticles())
+                continue;
             if (!canSee(p, owner) || (!pplayer.canSeeOwnParticles() && p == owner && !isLongRange))
                 continue;
 
-            if (p != null && pplayer.canSeeParticles() && p.getWorld().equals(center.getWorld()) && center.distanceSquared(p.getLocation()) <= range)
+            p.getLocation(scratch);
+            double dx = scratch.getX() - x, dy = scratch.getY() - y, dz = scratch.getZ() - z;
+            if (dx * dx + dy * dy + dz * dz <= rangeSquared)
                 players.add(p);
         }
 
         return players;
+    }
+
+    private static final Map<UUID, CachedViewers> VIEWERS = new ConcurrentHashMap<>();
+
+    private static final class CachedViewers {
+        final int tick;
+        final Player owner;
+        final List<Player> players;
+
+        CachedViewers(int tick, Player owner, List<Player> players) {
+            this.tick = tick;
+            this.owner = owner;
+            this.players = players;
+        }
     }
 
     /**

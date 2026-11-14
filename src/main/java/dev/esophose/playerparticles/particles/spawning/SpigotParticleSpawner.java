@@ -52,7 +52,7 @@ public class SpigotParticleSpawner extends ParticleSpawner {
         }
 
         for (Player player : getPlayersInRange(center, isLongRange, owner))
-            player.spawnParticle(particleEffect.getSpigotEnum(), center.getX(), center.getY(), center.getZ(), amount, offsetX, offsetY, offsetZ, speed, data);
+            ParticleBatcher.spawn(player, particleEffect.getSpigotEnum(), center.getX(), center.getY(), center.getZ(), amount, offsetX, offsetY, offsetZ, speed, data);
     }
 
     @Override
@@ -64,11 +64,11 @@ public class SpigotParticleSpawner extends ParticleSpawner {
             OrdinaryColor dustColor = (OrdinaryColor) color;
             DustOptions dustOptions = new DustOptions(dustColor.toSpigot(), size > 0 ? size : Settings.DUST_SIZE.get());
             for (Player player : getPlayersInRange(center, isLongRange, owner))
-                player.spawnParticle(particleEffect.getSpigotEnum(), center.getX(), center.getY(), center.getZ(), 1, 0, 0, 0, 0, dustOptions);
+                ParticleBatcher.spawn(player, particleEffect.getSpigotEnum(), center.getX(), center.getY(), center.getZ(), 1, 0, 0, 0, 0, dustOptions);
         } else if (particleEffect.getDataType() == ParticleDataType.COLORABLE_TRANSPARENCY) {
             OrdinaryColor ordinaryColor = (OrdinaryColor) color;
             for (Player player : getPlayersInRange(center, isLongRange, owner))
-                player.spawnParticle(particleEffect.getSpigotEnum(), center.getX(), center.getY(), center.getZ(), 1, 0, 0, 0, 0, ordinaryColor.toSpigot());
+                ParticleBatcher.spawn(player, particleEffect.getSpigotEnum(), center.getX(), center.getY(), center.getZ(), 1, 0, 0, 0, 0, ordinaryColor.toSpigot());
         } else if (particleEffect == ParticleEffect.TRAIL) {
             OrdinaryColor ordinaryColor = (OrdinaryColor) color;
             Location target;
@@ -79,16 +79,16 @@ public class SpigotParticleSpawner extends ParticleSpawner {
             }
             Object trailData = createTrailData(target, ordinaryColor.toSpigot());
             for (Player player : getPlayersInRange(center, isLongRange, owner))
-                player.spawnParticle(particleEffect.getSpigotEnum(), center.getX(), center.getY(), center.getZ(), 1, 0, 0, 0, 0, trailData, true);
+                ParticleBatcher.spawn(player, particleEffect.getSpigotEnum(), center.getX(), center.getY(), center.getZ(), 1, 0, 0, 0, 0, trailData, true);
         } else if ((particleEffect == ParticleEffect.INSTANT_EFFECT || particleEffect == ParticleEffect.SPELL) && (NMSUtil.getVersionNumber() > 21 || (NMSUtil.getVersionNumber() == 21 && NMSUtil.getMinorVersionNumber() >= 9))) {
             VersionUtils.spawnSpellParticles(particleEffect, center, (OrdinaryColor) color, isLongRange, owner); // INSTANT_EFFECT uses a Spell object for spawning in 1.21.9+
         } else if (particleEffect == ParticleEffect.ENTITY_EFFECT && (NMSUtil.getVersionNumber() > 20 || (NMSUtil.getVersionNumber() == 20 && NMSUtil.getMinorVersionNumber() >= 5))) {
             for (Player player : getPlayersInRange(center, isLongRange, owner)) // ENTITY_EFFECT uses a Color object for spawning in 1.20.5+
-                player.spawnParticle(particleEffect.getSpigotEnum(), center.getX(), center.getY(), center.getZ(), 0, 0, 0, 0, 1, color.toSpigot());
+                ParticleBatcher.spawn(player, particleEffect.getSpigotEnum(), center.getX(), center.getY(), center.getZ(), 0, 0, 0, 0, 1, color.toSpigot());
         } else {
             for (Player player : getPlayersInRange(center, isLongRange, owner)) {
                 // Minecraft clients require that you pass a non-zero value if the red value should be exactly zero for dust
-                player.spawnParticle(particleEffect.getSpigotEnum(), center.getX(), center.getY(), center.getZ(), 0, particleEffect == ParticleEffect.DUST && color.getValueX() == 0 ? Float.MIN_VALUE : color.getValueX(), color.getValueY(), color.getValueZ(), 1);
+                ParticleBatcher.spawn(player, particleEffect.getSpigotEnum(), center.getX(), center.getY(), center.getZ(), 0, particleEffect == ParticleEffect.DUST && color.getValueX() == 0 ? Float.MIN_VALUE : color.getValueX(), color.getValueY(), color.getValueZ(), 1, null);
             }
         }
     }
@@ -108,7 +108,7 @@ public class SpigotParticleSpawner extends ParticleSpawner {
         }
 
         for (Player player : getPlayersInRange(center, isLongRange, owner))
-            player.spawnParticle(particleEffect.getSpigotEnum(), center.getX(), center.getY(), center.getZ(), amount, offsetX, offsetY, offsetZ, speed, extraData);
+            ParticleBatcher.spawn(player, particleEffect.getSpigotEnum(), center.getX(), center.getY(), center.getZ(), amount, offsetX, offsetY, offsetZ, speed, extraData);
     }
 
     @Override
@@ -121,7 +121,7 @@ public class SpigotParticleSpawner extends ParticleSpawner {
 
         org.bukkit.Particle.DustTransition dustTransition = new org.bukkit.Particle.DustTransition(colorTransition.getStartColor().toSpigot(), colorTransition.getEndColor().toSpigot(), size > 0 ? size : Settings.DUST_SIZE.get());
         for (Player player : getPlayersInRange(center, isLongRange, owner))
-            player.spawnParticle(particleEffect.getSpigotEnum(), center.getX(), center.getY(), center.getZ(), amount, offsetX, offsetY, offsetZ, dustTransition);
+            ParticleBatcher.spawn(player, particleEffect.getSpigotEnum(), center.getX(), center.getY(), center.getZ(), amount, offsetX, offsetY, offsetZ, 1, dustTransition);
     }
 
     @Override
